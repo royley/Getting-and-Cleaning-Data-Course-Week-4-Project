@@ -11,24 +11,24 @@
     }
 
   # Read in training files from unzipped folder
-    subjecttrain = read.table('./train/subject_train.txt',header=FALSE);
-    xtrain = read.table('./train/x_train.txt',header=FALSE);
-    ytrain = read.table('./train/y_train.txt',header=FALSE);
+    subjecttrain = read.table('./UCI HAR Dataset/train/subject_train.txt',header=FALSE);
+    xtrain = read.table('./UCI HAR Dataset/train/x_train.txt',header=FALSE);
+    ytrain = read.table('./UCI HAR Dataset/train/y_train.txt',header=FALSE);
 
   # Read in test files from unzipped folder
-    subjecttest = read.table('./test/subject_test.txt',header=FALSE);
-    xtest = read.table('./test/x_test.txt',header=FALSE);
-    ytest = read.table('./test/y_test.txt',header=FALSE);
+    subjecttest = read.table('./UCI HAR Dataset/test/subject_test.txt',header=FALSE);
+    xtest = read.table('./UCI HAR Dataset/test/x_test.txt',header=FALSE);
+    ytest = read.table('./UCI HAR Dataset/test/y_test.txt',header=FALSE);
   
   # Read in remaining required files from unzipped folder
-    features = read.table('./features.txt',header=FALSE);
-    activitylabels = read.table('./activity_labels.txt',header=FALSE);
+    features = read.table('./UCI HAR Dataset/features.txt',header=FALSE);
+    activitylabels = read.table('./UCI HAR Dataset/activity_labels.txt',header=FALSE);
     
   # Assign column names to the imported data
     colnames(activitylabels) = c('activityid','activitytype');
     colnames(subjecttrain) = "subjectid";
     colnames(xtrain) = features[,2]; 
-    colnames(yTrain) = "activityid";
+    colnames(ytrain) = "activityid";
     colnames(subjecttest) = "subjectid";
     colnames(xtest) = features[,2]; 
     colnames(ytest) = "activityid";
@@ -44,54 +44,45 @@
 
 #Step 2 - Extract only the measurements on the mean and standard deviation for each measurement.
   # Using combineddata, create a column name vector, used to select the mean and stddev columns
-    colNames  = colnames(combineddata); 
+    columnnames  = colnames(combineddata); 
 
   # Create a logical vector to identify the ID, mean and stddev columns
-    log_vector = (grepl("activity..",colNames) | grepl("subject..",colNames) | grepl("-mean..",colNames) & !grepl("-meanFreq..",colNames) & !grepl("mean..-",colNames) | grepl("-std..",colNames) & !grepl("-std()..-",colNames));
+    log_vector = (grepl("activity..",columnnames) | grepl("subject..",columnnames) | grepl("-mean..",columnnames) & !grepl("-meanFreq..",columnnames) & !grepl("mean..-",columnnames) | grepl("-std..",columnnames) & !grepl("-std()..-",columnnames));
 
   # Select required columns from combineddata table
     finaldata = combineddata[log_vector==TRUE];
 
 #Step 3 - Use descriptive activity names to name the activities in the dataset
-
-  # Merge the combineddata dataset with the acitivitytype table including descriptive activity names created earlier
-    finaldata2 = merge(finalData,activityType,by='activityId',all.x=TRUE);
-############################################
-  # Updating the colNames vector to include the new column names after merge
-    colNames  = colnames(finalData); 
+  # Merge the combineddata dataset with the acitivitylabels table including descriptive activity names created earlier
+    finaldata2 = merge(finalData,activitylabels,by='activityid',all.x=TRUE);
 
 # 4. Appropriately label the data set with descriptive activity names. 
+  # Update the colNames vector to include the new column names after merge
+    columnnames  = colnames(finaldata2); 
 
-# Cleaning up the variable names
-for (i in 1:length(colNames)) 
-{
-  colNames[i] = gsub("\\()","",colNames[i])
-  colNames[i] = gsub("-std$","StdDev",colNames[i])
-  colNames[i] = gsub("-mean","Mean",colNames[i])
-  colNames[i] = gsub("^(t)","time",colNames[i])
-  colNames[i] = gsub("^(f)","freq",colNames[i])
-  colNames[i] = gsub("([Gg]ravity)","Gravity",colNames[i])
-  colNames[i] = gsub("([Bb]ody[Bb]ody|[Bb]ody)","Body",colNames[i])
-  colNames[i] = gsub("[Gg]yro","Gyro",colNames[i])
-  colNames[i] = gsub("AccMag","AccMagnitude",colNames[i])
-  colNames[i] = gsub("([Bb]odyaccjerkmag)","BodyAccJerkMagnitude",colNames[i])
-  colNames[i] = gsub("JerkMag","JerkMagnitude",colNames[i])
-  colNames[i] = gsub("GyroMag","GyroMagnitude",colNames[i])
-};
+  # Cleaning up the variable names
+    for (i in 1:length(columnnames)) {
+    columnnames[i] = gsub("\\()","",columnnames[i])
+    columnnames[i] = gsub("-std$","StdDev",columnnames[i])
+    columnnames[i] = gsub("-mean","Mean",columnnames[i])
+    columnnames[i] = gsub("^(t)","Time",columnnames[i])
+    columnnames[i] = gsub("^(f)","Freq",columnnames[i])
+    columnnames[i] = gsub("([Gg]ravity)","Gravity",columnnames[i])
+    columnnames[i] = gsub("([Bb]ody[Bb]ody|[Bb]ody)","Body",columnnames[i])
+    columnnames[i] = gsub("[Gg]yro","Gyro",columnnmes[i])
+    columnnames[i] = gsub("AccMag","AccMagnitude",columnnames[i])
+    columnnames[i] = gsub("([Bb]odyaccjerkmag)","BodyAccJerkMagnitude",columnnames[i])
+    columnnames[i] = gsub("JerkMag","JerkMagnitude",columnnames[i])
+    columnnames[i] = gsub("GyroMag","GyroMagnitude",columnnames[i])
+    };
 
-# Reassigning the new descriptive column names to the finalData set
-colnames(finalData) = colNames;
+    # Assign the descriptive column names to the finaldata2 dataset
+    colnames(finaldata2) = columnnames;
 
-# 5. Create a second, independent tidy data set with the average of each variable for each activity and each subject. 
+#Step 5 - Using the dataset created in Step 4, create a second, tidy dataset showing the average of each variable for each activity and each subject
+    #Build new dataset
+    tidydataset <- aggregate(. ~subjectid + activityid, finaldata2, mean)
+    tidydataset2 <- tidydataset[order(tidydataset$subjectid, tidydataset$activityid),]
 
-# Create a new table, finalDataNoActivityType without the activityType column
-finalDataNoActivityType  = finalData[,names(finalData) != 'activityType'];
-
-# Summarizing the finalDataNoActivityType table to include just the mean of each variable for each activity and each subject
-tidyData    = aggregate(finalDataNoActivityType[,names(finalDataNoActivityType) != c('activityId','subjectId')],by=list(activityId=finalDataNoActivityType$activityId,subjectId = finalDataNoActivityType$subjectId),mean);
-
-# Merging the tidyData with activityType to include descriptive acitvity names
-tidyData    = merge(tidyData,activityType,by='activityId',all.x=TRUE);
-
-# Export the tidyData set 
-write.table(tidyData, './tidyData.txt',row.names=TRUE,sep='\t');
+    # Export tidydataset2 
+    write.table(tidydataset2, './UCI HAR Dataset/tidyData.txt',row.names=TRUE,sep='\t');
